@@ -2,8 +2,9 @@ import aiohttp
 import asyncio
 import time
 import random
-import signal
 import requests
+
+import argparse
 
 
 @asyncio.coroutine
@@ -11,7 +12,6 @@ def make_vote(res, url):
     t1 = time.time()
     get_session = aiohttp.ClientSession()
     resp = yield from get_session.get(url)
-    # post_session = get_session
     post_session = aiohttp.ClientSession(cookies={'voter_id': resp.cookies.get('voter_id')})
     post_resp = yield from post_session.post(url, data={'vote': 'a' if random.random() < 0.5 else 'b'})
     t2 = time.time()
@@ -24,12 +24,13 @@ def make_vote(res, url):
 
 
 def get_request(url):
-	return requests.get(url)
+    return requests.get(url)
 
 
 def post_request(url, cookies):
-	return requests.post(url, cookies=cookies,
-	                     data={'vote': 'a' if random.random() < 0.5 else 'b'})
+    return requests.post(url, cookies=cookies,
+                         data={'vote': 'a' if random.random() < 0.5 else 'b'})
+
 
 @asyncio.coroutine
 def make_vote_requests(res, url):
@@ -40,82 +41,62 @@ def make_vote_requests(res, url):
     post_fut = loop.run_in_executor(None, post_request, url,
                                     {'voter_id': resp.cookies.get('voter_id')})
     yield from post_fut
-    # yield from get_request(url)
-    # yield from post_request(url,
-    #                         {'voter_id': resp.cookies.get('voter_id')})
-    # get_session = aiohttp.ClientSession()
-    # resp = requests.get(url)
-    # requests.post(url,
-	#               cookies={'voter_id': resp.cookies.get('voter_id')},
-	# 			  data={'vote': 'a' if random.random() < 0.5 else 'b'})
     t2 = time.time()
     r = t2 - t1
     res.append(r)
 
 
 @asyncio.coroutine
-def sleep_test(char):
-	print("{} begin".format(char))
-	yield from asyncio.sleep(1)
-	print("{} end".format(char))
-
-
-# @asyncio.coroutine
-# def vote():
-#     loop = asyncio.get_event_loop()
-#     t1 = time.time()
-#     r = requests.get('http://192.168.99.102:5000/')
-#     if r.status_code != 200:
-#         raise Exception("Dead")
-#     requests.post('http://192.168.99.102:5000/', cookies={'voter_id': r.cookies.get('voter_id')}, data={'vote': 'a' if random.random() < 0.5 else 'b'})
-#
-#
-# @asyncio.coroutine
-# def call_api(l, address):
-#     loop = asyncio.get_event_loop()
-#     t1 = time.time()
-#     future = loop.run_in_executor(None, requests.get, address)
-#     res = yield from future
-#     t2 = time.time()
-#     r = t2 - t1
-#     l.append(r)
-
-
-@asyncio.coroutine
 def worker_with_count(number_of_windows, windows_length, callable, *args, **kwargs):
     futures = []
+    print("Number of requests per second\tResults")
     for i in range(number_of_windows):
         res = []
         futures = []
         c = 0
-        number_of_requests = 1 << (i + 5)
+        number_of_requests = 1 << i
         while c < windows_length:
             for n in range(number_of_requests):
-                 futures.append(asyncio.async(callable(res, *args, **kwargs)))
+                futures.append(asyncio.async(callable(res, *args, **kwargs)))
             c += 1
             yield from asyncio.sleep(1)
         yield from asyncio.wait(futures)
-        print("Number of requests: {}".format(number_of_requests))
-        print("Median: {}".format(sorted(res)[len(res)//2]))
-        print("Srednia: {}".format(sum(res)/len(res)))
-    # print("\n\n")
+        # print("Number of requests: {}".format(number_of_requests))
+        # print("Median: {}".format(sorted(res)[len(res)//2]))
+        # print("Srednia: {}".format(sum(res)/len(res)))
+        print("{} {}".format(number_of_requests, sorted(res)))
 
 
-@asyncio.coroutine
-def aaaaa():
-	import string
-	futures = []
-	for char in string.ascii_lowercase:
-		futures.append(asyncio.async(sleep_test(char)))
-	yield from asyncio.gather(*futures)
+def get_argparser():
+    parser = argparse.ArgumentParser(description='Example voting app stress '
+                                                 'test app.')
+    parser.add_argument('url',
+                        help='An url of example voting app \'vote\' app.')
+    parser.add_argument('requests_windows', type=int,
+                        help='Number of requests windows. In each window the '
+                             'number of request which are going to be send '
+                             'is equal to 2^n, where n is the number of '
+                             'window decreased by one, eg. in the second '
+                             'window 2^1 requests are going to be send every '
+                             'second, in the 5th window 2^4 requests are '
+                             'going to be send.')
+    parser.add_argument('window_length', type=int,
+                        help='This value determine how long requests window '
+                             'is (in seconds). Every second bunch of request '
+                             'are going to be send.')
+
+    return parser
 
 
 if __name__ == "__main__":
+    parser = get_argparser()
+    args = parser.parse_args()
     loop = asyncio.get_event_loop()
     try:
-        # loop.run_until_complete(aaaaa())
-        loop.run_until_complete(worker_with_count(5, 5, make_vote_requests, 'http://192.168.99.100/'))
-        # loop.run_until_complete(worker_with_count(10, 100, make_vote, 'http://192.168.99.100:8000/'))
+        loop.run_until_complete(worker_with_count(args.requests_windows,
+                                                  args.window_length,
+                                                  make_vote_requests,
+                                                  args.url))
     finally:
         asyncio.gather(*asyncio.Task.all_tasks()).cancel()
         loop.stop()
