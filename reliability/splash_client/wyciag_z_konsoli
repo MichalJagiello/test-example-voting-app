@@ -1,0 +1,62 @@
+>>> import requests
+>>> r = requests.get('http://192.168.99.100:8050/render.html', params={'url': 'http://192.168.99.101:81/'}) 
+>>> r.url
+'http://192.168.99.100:8050/render.html?url=http%3A%2F%2F192.168.99.101%3A81%2F'
+>>> r = requests.get('http://192.168.99.100:8050/render.html', params={'url': 'http://192.168.99.101:81/', 'timeout': 10, 'wait': 0.5}) 
+>>> r.body
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AttributeError: 'Response' object has no attribute 'body'
+>>> r.content
+b'<!DOCTYPE html><html ng-app="catsvsdogs" class="ng-scope"><head><style type="text/css">@charset "UTF-8";[ng\\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>\n    <meta charset="utf-8">\n    <title>Cats vs Dogs -- Result</title>\n    <base href="/index.html">\n    <meta name="viewport" content="width=device-width, initial-scale = 1.0">\n    <meta name="keywords" content="docker-compose, docker, stack">\n    <meta name="author" content="Docker">\n    <link rel="stylesheet" href="/stylesheets/style.css">\n  </head>\n  <body ng-controller="statsCtrl" class="ng-scope" style="opacity: 1;">\n     <div id="background-stats">\n       <div id="background-stats-1" style="width: 50%;">\n       </div><!--\n      --><div id="background-stats-2" style="width: 50%;">\n      </div>\n    </div>\n    <div id="content-container">\n      <div id="content-container-center">\n        <div id="choice">\n          <div class="choice cats">\n            <div class="label">Cats</div>\n            <div class="stat ng-binding">50.0%</div>\n          </div>\n          <div class="divider"></div>\n          <div class="choice dogs">\n            <div class="label">Dogs</div>\n            <div class="stat ng-binding">50.0%</div>\n          </div>\n        </div>\n      </div>\n    </div>\n    <div id="result">\n      <!-- ngIf: total == 0 -->\n      <!-- ngIf: total == 1 -->\n      <!-- ngIf: total >= 2 --><span ng-if="total &gt;= 2" class="ng-binding ng-scope">53773 votes</span><!-- end ngIf: total >= 2 -->\n    </div>\n    <script src="socket.io.js"></script>\n    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>\n    <script src="app.js"></script>\n  \n\n</body></html>'
+>>> import lxml
+>>> from lxml import html
+>>> html.from_string
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AttributeError: module 'lxml.html' has no attribute 'from_string'
+>>> html.fromstring
+<function fromstring at 0x7f9c265f66a8>
+>>> html.fromstring(r.content)
+<Element html at 0x7f9c2727f3b8>
+>>> h - html.fromstring(r.content)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'h' is not defined
+>>> h = html.fromstring(r.content)
+>>> h
+<Element html at 0x7f9c272aa048>
+>>> h.xpath('id('result')/x:span')
+  File "<stdin>", line 1
+    h.xpath('id('result')/x:span')
+                      ^
+SyntaxError: invalid syntax
+>>> h.xpath("id('result')/x:span")
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "src/lxml/lxml.etree.pyx", line 1587, in lxml.etree._Element.xpath (src/lxml/lxml.etree.c:59369)
+  File "src/lxml/xpath.pxi", line 307, in lxml.etree.XPathElementEvaluator.__call__ (src/lxml/lxml.etree.c:171249)
+  File "src/lxml/xpath.pxi", line 227, in lxml.etree._XPathEvaluatorBase._handle_result (src/lxml/lxml.etree.c:170206)
+lxml.etree.XPathEvalError: Undefined namespace prefix
+>>> h.xpath("/html/body/div[3]/span")
+[<Element span at 0x7f9c2727f3b8>]
+>>> span = h.xpath("/html/body/div[3]/span")
+>>> span
+[<Element span at 0x7f9c2727f3b8>]
+>>> dir(span)
+['__add__', '__class__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__iadd__', '__imul__', '__init__', '__iter__', '__le__', '__len__', '__lt__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__reversed__', '__rmul__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'append', 'clear', 'copy', 'count', 'extend', 'index', 'insert', 'pop', 'remove', 'reverse', 'sort']
+>>> span = h.xpath("/html/body/div[3]/span/text()")
+>>> span
+['53773 votes']
+>>> h.xpath("/html/body/div[3]/span/text()")
+['53773 votes']
+>>> 
+>>> 
+>>> 
+>>> 
+>>> r2 = requests.get('http://192.168.99.100:8050/render.html', params={'url': 'http://192.168.99.102/results/', 'timeout': 10, 'wait': 0.5}) >>> h2 = html.fromstring(r2.content)
+>>> h2
+<Element html at 0x7f9c265fac78>
+>>> h2.xpath("/html/body/div[3]/span/text()")
+['42067 votes']
+
